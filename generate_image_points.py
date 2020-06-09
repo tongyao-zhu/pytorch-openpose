@@ -56,6 +56,7 @@ def generate_points(image_name_list, save_batch_size=1000):
     print("start to process images")
     for input_image in image_name_list:
         count += 1
+        # print(f"processing current image {count}")
         oriImg = cv2.imread(input_image)  # B,G,R order
         candidate, subset = body_estimation(oriImg)
         # print("candidate is {}".format(candidate))
@@ -80,16 +81,16 @@ def generate_points(image_name_list, save_batch_size=1000):
             #     peaks[:, 0] = np.where(peaks[:, 0]==0, peaks[:, 0], w-peaks[:, 0]-1+x)
             #     peaks[:, 1] = np.where(peaks[:, 1]==0, peaks[:, 1], peaks[:, 1]+y)
             #     print(peaks)
-            all_hand_peaks.append(peaks)
+            all_hand_peaks.append(peaks.tolist())
 
-        candidate_dict[input_image] = candidate
-        subset_dict[input_image] = subset
+        candidate_dict[input_image] = candidate.tolist()
+        subset_dict[input_image] = subset.tolist()
         hands_dict[input_image] = hands_list
         all_hand_peaks_dict[input_image] = all_hand_peaks
         #
         # print("all hands peak is {}".format(all_hand_peaks))
         # print("finished processing current image {}".format(input_image))
-        if (count + 1) % save_batch_size == 0 or count == len(image_name_list) - 1:
+        if (count) % save_batch_size == 0 or count == len(image_name_list) - 1:
             print("finished processing {} images".format("count"))
             filename = f"./data/batch_{(count//save_batch_size):03}.json"
             total_dict = {"candidates":candidate_dict, "subset":subset_dict, "hands":hands_dict, "hand_peaks":all_hand_peaks_dict}
