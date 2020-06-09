@@ -12,7 +12,8 @@ from src.hand import Hand
 body_estimation = Body('model/body_pose_model.pth')
 hand_estimation = Hand('model/hand_pose_model.pth')
 
-print(f"Torch device: {torch.cuda.get_device_name()}")
+if torch.cuda.is_available():
+    print(f"Torch device: {torch.cuda.get_device_name()}")
 
 cap = cv2.VideoCapture(0)
 cap.set(3, 640)

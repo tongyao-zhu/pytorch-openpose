@@ -11,14 +11,16 @@ from src.hand import Hand
 body_estimation = Body('model/body_pose_model.pth')
 hand_estimation = Hand('model/hand_pose_model.pth')
 
-test_image = 'images/demo.jpg'
+test_image = 'images/images0015.png'
 oriImg = cv2.imread(test_image)  # B,G,R order
 candidate, subset = body_estimation(oriImg)
+print("candidate is {}".format(candidate))
+print("subset is {}".format(subset))
 canvas = copy.deepcopy(oriImg)
 canvas = util.draw_bodypose(canvas, candidate, subset)
 # detect hand
 hands_list = util.handDetect(candidate, subset, oriImg)
-
+print("hands list is {}".format(hands_list))
 all_hand_peaks = []
 for x, y, w, is_left in hands_list:
     # cv2.rectangle(canvas, (x, y), (x+w, y+w), (0, 255, 0), 2, lineType=cv2.LINE_AA)
@@ -37,6 +39,7 @@ for x, y, w, is_left in hands_list:
     #     print(peaks)
     all_hand_peaks.append(peaks)
 
+print("all hands peak is {}".format(all_hand_peaks))
 canvas = util.draw_handpose(canvas, all_hand_peaks)
 
 plt.imshow(canvas[:, :, [2, 1, 0]])

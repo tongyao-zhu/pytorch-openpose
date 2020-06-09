@@ -68,7 +68,6 @@ class Hand(object):
             max_index = np.argmax([np.sum(map_ori[label_img == i]) for i in range(1, label_numbers + 1)]) + 1
             label_img[label_img != max_index] = 0
             map_ori[label_img == 0] = 0
-
             y, x = util.npmax(map_ori)
             all_peaks.append([x, y])
         return np.array(all_peaks)
