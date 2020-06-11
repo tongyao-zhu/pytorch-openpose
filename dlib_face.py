@@ -1,4 +1,4 @@
-
+# sample usage:  python dlib_face.py shape_predictor_68_face_landmarks.dat  ./images/
 import sys
 import os
 import dlib
@@ -41,6 +41,8 @@ for f in glob.glob(os.path.join(faces_folder_path, "*.png")):
         shape = predictor(img, d)
         print("Part 0: {}, Part 1: {} ...".format(shape.part(0),
                                                   shape.part(1)))
+        print("It has {} parts".format(shape.num_parts))
+        print("parts are {}".format(shape.parts()))
         print("Part 60 is {}".format(shape.part(60)))
         # Draw the face landmarks on the screen.
         # win.add_overlay(shape)
