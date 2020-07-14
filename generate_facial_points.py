@@ -55,10 +55,11 @@ def generate_facial_points(image_name_list, predictor_path, save_batch_size=1000
     print("batch size is {}".format(save_batch_size))
     name_points_dict = {}
     count = 0
+    detector = dlib.get_frontal_face_detector()
+    predictor = dlib.shape_predictor(predictor_path)
     for f in image_name_list:
         count += 1
-        detector = dlib.get_frontal_face_detector()
-        predictor = dlib.shape_predictor(predictor_path)
+
         # win = dlib.image_window()
 
         # print("Processing file: {}".format(f))
