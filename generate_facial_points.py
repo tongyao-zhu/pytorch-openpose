@@ -8,7 +8,7 @@ import sys
 import os
 import dlib
 import glob
-
+from multiprocessing import Pool
 
 def parts_to_points(parts):
     result = []
@@ -50,65 +50,117 @@ def read_image_list(corpus_path):
             f.write("%s \n" % item)
     return image_name_list
 
+def get_batches(image_name_list, batch_size):
+    batches = []
+    batch_names = []
+    for i in range(0, len(image_name_list), batch_size):
+        batches.append(image_name_list[i:i+batch_size])
+        batch_names.append(i//batch_size)
+    return zip(batch_names, batches)
 
-def generate_facial_points(image_name_list, predictor_path, save_batch_size=1000):
-    print("batch size is {}".format(save_batch_size))
-    name_points_dict = {}
-    count = 0
+def generate_facial_points(image_name_list, predictor_path, save_batch_size=1000, num_process=15):
     detector = dlib.get_frontal_face_detector()
     predictor = dlib.shape_predictor(predictor_path)
-    for f in image_name_list:
-        count += 1
 
-        # win = dlib.image_window()
+    def get_points(batch_name, image_names, predictor=predictor):
+        name_points_dict = {}
+        for f in image_names:
+            img = dlib.load_rgb_image(f)
+            dets = detector(img, 1)
+            if len(dets) == 0:
+                name_points_dict[f] = []
 
-        # print("Processing file: {}".format(f))
-        img = dlib.load_rgb_image(f)
+            try:
+                assert len(dets) <= 1
+            except:
+                print("Error! More than 1 faces are identified in a single image")
+                print("name of file is {}".format(f))
+                name_points_dict[f] = []
+                continue
+            for k, d in enumerate(dets):
+                # print("Detection {}: Left: {} Top: {} Right: {} Bottom: {}".format(k, d.left(), d.top(), d.right(),
+                # d.bottom())) Get the landmarks/parts for the face in box d.
+                shape = predictor(img, d)
+                # print("Part 0: {}, Part 1: {} ...".format(shape.part(0),
+                # shape.part(1)))
 
-        # win.clear_overlay()
-        # win.set_image(img)
-        dets = detector(img, 1)
-        # print("Number of faces detected: {} in".format(len(dets)))
+                # print("It has {} parts".format(shape.num_parts))
+                assert shape.num_parts == 68
+                name_points_dict[f] = parts_to_points(shape.parts())
 
-        if len(dets)==0:
-            name_points_dict[f]=[]
+                # print("Part 60 is {}".format(shape.part(60)))
+        filename = f"./facial_data/batch_{batch_name:03}.json"
+        with open(filename, 'w') as outfile:
+            json.dump(name_points_dict, outfile)
+        print(f"finished writing to json, the file name is {filename}")
 
-        try:
-            assert len(dets) <= 1
-        except:
-            print("Error! More than 1 faces are identified in a single image")
-            print("name of file is {}".format(f))
-            name_points_dict[f]=[]
-        for k, d in enumerate(dets):
-            # print("Detection {}: Left: {} Top: {} Right: {} Bottom: {}".format(k, d.left(), d.top(), d.right(),
-            # d.bottom())) Get the landmarks/parts for the face in box d.
-            shape = predictor(img, d)
-            # print("Part 0: {}, Part 1: {} ...".format(shape.part(0),
-                                                     # shape.part(1)))
+    batches = list(get_batches(image_name_list, save_batch_size))
+    pool = Pool(num_process)
+    pool.map(get_points, batches)
+    pool.close()
+    pool.join()
+    print("Finished process!")
 
-            # print("It has {} parts".format(shape.num_parts))
-            assert shape.num_parts == 68
-            # print("parts are {}".format(shape.parts()))
 
-            name_points_dict[f] = parts_to_points(shape.parts())
-
-            # print("Part 60 is {}".format(shape.part(60)))
-            # Draw the face landmarks on the screen.
-            # win.add_overlay(shape)
-        # print("before saving, count is {}".format(count))
-        if count % save_batch_size == 0 or count == len(image_name_list):
-            print("finished processing {} images".format(count))
-            if count == len(image_name_list):
-                filename = f"./facial_data/batch_{(count // save_batch_size + 1):03}.json"
-            else:
-                filename = f"./facial_data/batch_{(count // save_batch_size):03}.json"
-            with open(filename, 'w') as outfile:
-                json.dump(name_points_dict, outfile)
-            print(f"finished writing to json, the file name is {filename}")
-            name_points_dict = {}
-            assert len(name_points_dict) == 0
-
-        # win.add_overlay(dets)
+#
+# def generate_facial_points(image_name_list, predictor_path, save_batch_size=1000):
+#     print("batch size is {}".format(save_batch_size))
+#     name_points_dict = {}
+#     count = 0
+#     detector = dlib.get_frontal_face_detector()
+#     predictor = dlib.shape_predictor(predictor_path)
+#     for f in image_name_list:
+#         count += 1
+#
+#         # win = dlib.image_window()
+#
+#         # print("Processing file: {}".format(f))
+#         img = dlib.load_rgb_image(f)
+#
+#         # win.clear_overlay()
+#         # win.set_image(img)
+#         dets = detector(img, 1)
+#         # print("Number of faces detected: {} in".format(len(dets)))
+#
+#         if len(dets)==0:
+#             name_points_dict[f]=[]
+#
+#         try:
+#             assert len(dets) <= 1
+#         except:
+#             print("Error! More than 1 faces are identified in a single image")
+#             print("name of file is {}".format(f))
+#             name_points_dict[f]=[]
+#         for k, d in enumerate(dets):
+#             # print("Detection {}: Left: {} Top: {} Right: {} Bottom: {}".format(k, d.left(), d.top(), d.right(),
+#             # d.bottom())) Get the landmarks/parts for the face in box d.
+#             shape = predictor(img, d)
+#             # print("Part 0: {}, Part 1: {} ...".format(shape.part(0),
+#                                                      # shape.part(1)))
+#
+#             # print("It has {} parts".format(shape.num_parts))
+#             assert shape.num_parts == 68
+#             # print("parts are {}".format(shape.parts()))
+#
+#             name_points_dict[f] = parts_to_points(shape.parts())
+#
+#             # print("Part 60 is {}".format(shape.part(60)))
+#             # Draw the face landmarks on the screen.
+#             # win.add_overlay(shape)
+#         # print("before saving, count is {}".format(count))
+#         if count % save_batch_size == 0 or count == len(image_name_list):
+#             print("finished processing {} images".format(count))
+#             if count == len(image_name_list):
+#                 filename = f"./facial_data/batch_{(count // save_batch_size + 1):03}.json"
+#             else:
+#                 filename = f"./facial_data/batch_{(count // save_batch_size):03}.json"
+#             with open(filename, 'w') as outfile:
+#                 json.dump(name_points_dict, outfile)
+#             print(f"finished writing to json, the file name is {filename}")
+#             name_points_dict = {}
+#             assert len(name_points_dict) == 0
+#
+#         # win.add_overlay(dets)
 
 
 if __name__ == "__main__":
@@ -118,15 +170,17 @@ if __name__ == "__main__":
     ap.add_argument("--corpus_path", type=str, default=None, help="the path to corpus containing video names")
     ap.add_argument("--batch_size", type=int, default=1000, help="the batch size to save the results")
     ap.add_argument("--predictor_path", type=str, required=True, help="the path to the pretrained predictory model")
+    ap.add_argument("--num_process", type=str, default=15, help="number of processes we are using")
     args = ap.parse_args()
     print("Using CUDA: {}".format(dlib.DLIB_USE_CUDA))
+    print(f"Input arguments are {args}")
     if args.image_list:
         print("image list specified, therefore directly generating points")
-        generate_facial_points(args.image_list, args.predictor_path, args.batch_size)
+        generate_facial_points(args.image_list, args.predictor_path, args.batch_size, args.num_process)
     elif args.corpus_path:
         print("only corpus path is specified, starting from corpus path")
         image_list = read_image_list(args.corpus_path)
         print("get all images, in total {} images".format(len(image_list)))
-        generate_facial_points(image_list, args.predictor_path, args.batch_size)
+        generate_facial_points(image_list, args.predictor_path, args.batch_size, args.num_process)
     else:
         print("must specified one of image list or corpus path")
