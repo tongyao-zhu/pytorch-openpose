@@ -63,7 +63,8 @@ def get_batches(image_name_list, batch_size, detector, predictor):
     return zip(batch_names, batches, detectors, predictors)
 
 
-def get_points(batch_name, image_names, detector, predictor):
+def get_points(arguments):
+    batch_name, image_names, detector, predictor = arguments
     name_points_dict = {}
     for f in image_names:
         img = dlib.load_rgb_image(f)
@@ -100,6 +101,7 @@ def generate_facial_points(image_name_list, predictor_path, save_batch_size=1000
     detector = dlib.get_frontal_face_detector()
     predictor = dlib.shape_predictor(predictor_path)
     batches = list(get_batches(image_name_list, save_batch_size, detector, predictor))
+    print("Finished loading getting all batches, in total {} batches".format(len(batches)))
     pool = Pool(num_process)
     pool.map(get_points, batches)
     pool.close()
