@@ -10,6 +10,7 @@ import dlib
 import glob
 from multiprocessing import Pool
 
+
 def parts_to_points(parts):
     result = []
     for part in parts:
@@ -50,51 +51,55 @@ def read_image_list(corpus_path):
             f.write("%s \n" % item)
     return image_name_list
 
-def get_batches(image_name_list, batch_size):
+
+def get_batches(image_name_list, batch_size, detector, predictor):
     batches = []
     batch_names = []
     for i in range(0, len(image_name_list), batch_size):
-        batches.append(image_name_list[i:i+batch_size])
-        batch_names.append(i//batch_size)
-    return zip(batch_names, batches)
+        batches.append(image_name_list[i:i + batch_size])
+        batch_names.append(i // batch_size)
+    detectors = [detector] * len(batch_names)
+    predictors = [predictor] * len(batch_names)
+    return zip(batch_names, batches, detectors, predictors)
+
+
+def get_points(batch_name, image_names, detector, predictor):
+    name_points_dict = {}
+    for f in image_names:
+        img = dlib.load_rgb_image(f)
+        dets = detector(img, 1)
+        if len(dets) == 0:
+            name_points_dict[f] = []
+
+        try:
+            assert len(dets) <= 1
+        except:
+            print("Error! More than 1 faces are identified in a single image")
+            print("name of file is {}".format(f))
+            name_points_dict[f] = []
+            continue
+        for k, d in enumerate(dets):
+            # print("Detection {}: Left: {} Top: {} Right: {} Bottom: {}".format(k, d.left(), d.top(), d.right(),
+            # d.bottom())) Get the landmarks/parts for the face in box d.
+            shape = predictor(img, d)
+            # print("Part 0: {}, Part 1: {} ...".format(shape.part(0),
+            # shape.part(1)))
+
+            # print("It has {} parts".format(shape.num_parts))
+            assert shape.num_parts == 68
+            name_points_dict[f] = parts_to_points(shape.parts())
+
+            # print("Part 60 is {}".format(shape.part(60)))
+    filename = f"./facial_data/batch_{batch_name:03}.json"
+    with open(filename, 'w') as outfile:
+        json.dump(name_points_dict, outfile)
+    print(f"finished writing to json, the file name is {filename}")
+
 
 def generate_facial_points(image_name_list, predictor_path, save_batch_size=1000, num_process=15):
     detector = dlib.get_frontal_face_detector()
     predictor = dlib.shape_predictor(predictor_path)
-
-    def get_points(batch_name, image_names, predictor=predictor):
-        name_points_dict = {}
-        for f in image_names:
-            img = dlib.load_rgb_image(f)
-            dets = detector(img, 1)
-            if len(dets) == 0:
-                name_points_dict[f] = []
-
-            try:
-                assert len(dets) <= 1
-            except:
-                print("Error! More than 1 faces are identified in a single image")
-                print("name of file is {}".format(f))
-                name_points_dict[f] = []
-                continue
-            for k, d in enumerate(dets):
-                # print("Detection {}: Left: {} Top: {} Right: {} Bottom: {}".format(k, d.left(), d.top(), d.right(),
-                # d.bottom())) Get the landmarks/parts for the face in box d.
-                shape = predictor(img, d)
-                # print("Part 0: {}, Part 1: {} ...".format(shape.part(0),
-                # shape.part(1)))
-
-                # print("It has {} parts".format(shape.num_parts))
-                assert shape.num_parts == 68
-                name_points_dict[f] = parts_to_points(shape.parts())
-
-                # print("Part 60 is {}".format(shape.part(60)))
-        filename = f"./facial_data/batch_{batch_name:03}.json"
-        with open(filename, 'w') as outfile:
-            json.dump(name_points_dict, outfile)
-        print(f"finished writing to json, the file name is {filename}")
-
-    batches = list(get_batches(image_name_list, save_batch_size))
+    batches = list(get_batches(image_name_list, save_batch_size, detector, predictor))
     pool = Pool(num_process)
     pool.map(get_points, batches)
     pool.close()
