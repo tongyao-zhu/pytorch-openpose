@@ -170,7 +170,7 @@ if __name__ == "__main__":
     ap.add_argument("--corpus_path", type=str, default=None, help="the path to corpus containing video names")
     ap.add_argument("--batch_size", type=int, default=1000, help="the batch size to save the results")
     ap.add_argument("--predictor_path", type=str, required=True, help="the path to the pretrained predictory model")
-    ap.add_argument("--num_process", type=str, default=15, help="number of processes we are using")
+    ap.add_argument("--num_process", type=int, default=15, help="number of processes we are using")
     args = ap.parse_args()
     print("Using CUDA: {}".format(dlib.DLIB_USE_CUDA))
     print(f"Input arguments are {args}")
