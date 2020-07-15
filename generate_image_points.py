@@ -92,7 +92,7 @@ def generate_points(image_name_list, save_batch_size=1000):
         # print("finished processing current image {}".format(input_image))
         if (count) % save_batch_size == 0 or count == len(image_name_list) - 1:
             print("finished processing {} images".format("count"))
-            filename = f"./data/batch_{(count//save_batch_size):03}.json"
+            filename = f"./keypoint_data/batch_{(count//save_batch_size):03}.json"
             total_dict = {"candidates":candidate_dict, "subset":subset_dict, "hands":hands_dict, "hand_peaks":all_hand_peaks_dict}
             with open(filename, 'w') as outfile:
                 json.dump(total_dict, outfile)
