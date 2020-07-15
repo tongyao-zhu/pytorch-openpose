@@ -66,7 +66,6 @@ def get_batch_points(arguments):
     all_hand_peaks_dict = {}
     print("start to process images")
     for input_image in image_name_list:
-        count += 1
         # print(f"processing current image {count}")
         oriImg = cv2.imread(input_image)  # B,G,R order
         candidate, subset = body_estimation(oriImg)
