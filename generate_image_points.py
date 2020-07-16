@@ -9,8 +9,12 @@ from src import model
 from src import util
 from src.body import Body
 from src.hand import Hand
-from multiprocessing import Pool
-
+from torch.multiprocessing import Pool, Process, set_start_method
+try:
+     set_start_method('spawn')
+except RuntimeError:
+    print("Error when setting start method")
+    pass
 body_estimation = Body('model/body_pose_model.pth')
 hand_estimation = Hand('model/hand_pose_model.pth')
 
